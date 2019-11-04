@@ -191,4 +191,4 @@ PNPUTIL /add-driver $pwd\*.inf /subdirs /install
 
 Pause
 
-Remove-Item -Path "C:\Dell\CabInstall" -Recurse
+# Remove-Item -Path "C:\Dell\CabInstall" -Recurse
