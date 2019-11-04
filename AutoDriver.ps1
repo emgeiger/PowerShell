@@ -1,5 +1,6 @@
-﻿# $DebugPreference = "Continue"
+# $DebugPreference = "Continue"
 # $VerbosePreference = "Continue"
+$logFile = C:\Logs\autoDriver.log
 $wc = New-Object System.Net.WebClient
 $majorVersion = [System.environment]::OSVersion.version.Major
 $minorVersion = [System.environment]::OSVersion.version.Minor
@@ -61,9 +62,18 @@ $catalogXMLFile = "$pwd" + "\DriverPackCatalog.xml"
 
 #--------------------------------------------------------------------------------------------------------------
 
-# $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
-#  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
-#   ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minorVersion )}
+if (!(Test-Path -Path "C:\Logs" -PathType Container))
+{
+    New-Item -Path "C:\Logs" -ItemType Directory
+}
+
+Get-Date | Out-File $logFile
+
+ $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
+  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
+   ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minorVersion )} | Out-File $logFile
+   
+   [Console]::Write("Log file wrote to ") + $logFile
 
 # $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.name -eq $modelObject.model) -and
 #  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
