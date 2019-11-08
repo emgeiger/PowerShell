@@ -180,11 +180,13 @@ Invoke-WebRequest $cabDownloadLink -OutFile $downloadDestination
 # $wc = New-Object System.Net.WebClient
 # $wc.DownloadFile($cabDownloadLink, $downlodDestination)
 
+$cabSource =  $pwd + "\" + $Filename
+
 if (!(Test-Path -Path "C:\Dell\CabInstall\cab" -PathType Container))
 {
     New-Item -Path "C:\Dell\CabInstall\cab" -ItemType Directory
 }
-$cabSource =  $pwd + "\" + $Filename
+
 $pwd = "C:\Dell\CabInstall\cab"
 # $cabDestination = $pwd + "\" + $Filename
 EXPAND $cabSource $pwd -F:*
