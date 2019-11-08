@@ -176,8 +176,9 @@ $Filename = [System.IO.Path]::GetFileName($cabDownloadLink)
 $downlodDestination = "$pwd" + "\" + $Filename
 # echo "Downloading driver pack. This may take a few minutes."
 Write-output "Downloading driver pack. This may take a few minutes."
+Invoke-WebRequest $cabDownloadLink -OutFile $downloadDestination
 # $wc = New-Object System.Net.WebClient
-$wc.DownloadFile($cabDownloadLink, $downlodDestination)
+# $wc.DownloadFile($cabDownloadLink, $downlodDestination)
 
 if (!(Test-Path -Path "C:\Dell\CabInstall\cab" -PathType Container))
 {
