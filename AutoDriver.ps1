@@ -1,69 +1,3 @@
-# $DebugPreference = "Continue"
-# $VerbosePreference = "Continue"
-
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-
-$frame = New-Object Windows.Forms.form
-$form = New-Object System.Windows.Forms.Form
-$form.Text = "Select a computer"
-$form.Size = New-Object System.Drawing.Size(300, 200)
-$form.StartPosition = "CenterScreen"
-
-$logFile = "C:\logs\autoDriver.log"
-
-$okButton = New-Object System.Windows.Forms.Button
-$okButton.Location = New-Object System.Drawing.Point(50, 120)
-$okButton.Size = New-Object System.Drawing.Size(50, 22)
-$okButton.Text = "OK"
-$okButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
-$form.AcceptButton = $okButton
-$form.Controls.Add($okButton)
-
-$cancelButton = New-Object System.Windows.Forms.Button
-$cancelButton.Location = New-Object System.Drawing.Point(100, 120)
-$cancelButton.Size = New-Object System.Drawing.Size(50, 22)
-$cancelButton.Text = "Cancel"
-$cancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-$form.CancelButton = $cancelButton
-$form.Controls.Add($cancelButton)
-
-$apply = New-Object System.Windows.Forms.Button
-$apply.Location = New-Object System.Drawing.Point(150, 120)
-$apply.Size = New-Object System.Drawing.Size(50, 22)
-$apply.Text = "Apply"
-# $apply.DialogResult = [System.Windows.Forms.DialogResult]::
-
-$label = New-Object System.Windows.Forms.Label
-$label.Location = New-Object System.Drawing.Point(10,20)
-$label.Size = New-Object System.Drawing.Size(280, 20)
-$label.Text = "Please select a computer"
-$form.Controls.Add($label)
-
-$listBox = New-Object System.Windows.Forms.ListBox
-$listBox.Location = New-Object System.Drawing.Point(10, 40)
-$listBox.Size = New-Object System.Drawing.Size(120, 20)
-$listBox.Height = 80
-
-[void] $listBox.Items.Add("")
-
-# $listBox.SelectionMode = "MultiExtended"
-
-$form.Controls.Add($listBox)
-
-$form.TopMost = $true
-
-$result = $form.ShowDialog()
-
-if($result -eq [System.Windows.Forms.DialogResult]::OK)
-{
-    $model = $listBox.SelectedItem
-}
-elseif($result -eq [System.Windows.Forms.Dialogresult]::Cancel)
-{
-    $form.Close()
-}
-
 #main code
 $logFile = C:\Logs\autoDriver.log
 $wc = New-Object System.Net.WebClient
@@ -207,3 +141,73 @@ PNPUTIL /add-driver $pwd\*.inf /subdirs /install
 Pause
 
 # Remove-Item -Path "C:\Dell\CabInstall" -Recurse
+
+# $DebugPreference = "Continue"
+# $VerbosePreference = "Continue"
+
+<#
+# Testing
+
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+$frame = New-Object Windows.Forms.form
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Select a computer"
+$form.Size = New-Object System.Drawing.Size(300, 200)
+$form.StartPosition = "CenterScreen"
+
+$logFile = "C:\logs\autoDriver.log"
+
+$okButton = New-Object System.Windows.Forms.Button
+$okButton.Location = New-Object System.Drawing.Point(50, 120)
+$okButton.Size = New-Object System.Drawing.Size(50, 22)
+$okButton.Text = "OK"
+$okButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
+$form.AcceptButton = $okButton
+$form.Controls.Add($okButton)
+
+$cancelButton = New-Object System.Windows.Forms.Button
+$cancelButton.Location = New-Object System.Drawing.Point(100, 120)
+$cancelButton.Size = New-Object System.Drawing.Size(50, 22)
+$cancelButton.Text = "Cancel"
+$cancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+$form.CancelButton = $cancelButton
+$form.Controls.Add($cancelButton)
+
+$apply = New-Object System.Windows.Forms.Button
+$apply.Location = New-Object System.Drawing.Point(150, 120)
+$apply.Size = New-Object System.Drawing.Size(50, 22)
+$apply.Text = "Apply"
+# $apply.DialogResult = [System.Windows.Forms.DialogResult]::
+
+$label = New-Object System.Windows.Forms.Label
+$label.Location = New-Object System.Drawing.Point(10,20)
+$label.Size = New-Object System.Drawing.Size(280, 20)
+$label.Text = "Please select a computer"
+$form.Controls.Add($label)
+
+$listBox = New-Object System.Windows.Forms.ListBox
+$listBox.Location = New-Object System.Drawing.Point(10, 40)
+$listBox.Size = New-Object System.Drawing.Size(120, 20)
+$listBox.Height = 80
+
+[void] $listBox.Items.Add("")
+
+# $listBox.SelectionMode = "MultiExtended"
+
+$form.Controls.Add($listBox)
+
+$form.TopMost = $true
+
+$result = $form.ShowDialog()
+
+if($result -eq [System.Windows.Forms.DialogResult]::OK)
+{
+    $model = $listBox.SelectedItem
+}
+elseif($result -eq [System.Windows.Forms.Dialogresult]::Cancel)
+{
+    $form.Close()
+}
+#>
