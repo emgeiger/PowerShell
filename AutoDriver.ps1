@@ -67,8 +67,20 @@ elseif($result -eq [System.Windows.Forms.Dialogresult]::Cancel)
 #main code
 $logFile = C:\Logs\autoDriver.log
 $wc = New-Object System.Net.WebClient
-$majorVersion = [System.environment]::OSVersion.version.Major
-$minorVersion = [System.environment]::OSVersion.version.Minor
+
+# $majorVersion = [System.environment]::OSVersion.version.Major
+# $minorVersion = [System.environment]::OSVersion.version.Minor
+
+# $majorVersion = [Environment]::OSVersion.Version.Major
+# $minorVersion = [Environment]::OSVersion.Version.Minor
+
+# (Get-CimInstance Win32_OperatingSystem).Version
+
+$version = (Get-CimInstance -ClassName Win32_OperatingSystem)."Version" -match "(?s)^([0-9]+)\.([0-9]+)"
+$minor = $Matches[2]
+[string]$major = (Get-CimInstance -ClassName Win32_OperatingSystem)."Version" -match "(?s)^[0-9]+"
+$major = $Matches[0]
+
 $model = (Get-WmiObject -Class Win32_computerSystem -ComputerName . -Namespace root\cimv2).model
 $modelObject = Get-WmiObject -Class Win32_computerSystem -ComputerName . -Namespace root\cimv2
 $modelList = Get-WmiObject -Query "Select * FROM Win32_ComputerSystem" -ComputerName . -Namespace root\cimv2 | Select-Object -Property model | Format-List -Expand EnumOnly
