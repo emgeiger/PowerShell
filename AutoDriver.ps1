@@ -138,6 +138,8 @@ $pwd = "C:\Dell\CabInstall\cab"
 EXPAND $cabSource $pwd -F:*
 PNPUTIL /add-driver $pwd\*.inf /subdirs /install
 
+write-warning "Need to run BIOS manually"
+
 Pause
 
 # Remove-Item -Path "C:\Dell\CabInstall" -Recurse
