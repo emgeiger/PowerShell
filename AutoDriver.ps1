@@ -1,5 +1,5 @@
 #main code
-$logFile = C:\Logs\autoDriver.log
+$logFile = "C:\Logs\autoDriver.log"
 $wc = New-Object System.Net.WebClient
 
 # $majorVersion = [System.environment]::OSVersion.version.Major
