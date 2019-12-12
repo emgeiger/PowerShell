@@ -55,8 +55,8 @@ $catalogXMLFile = "$pwd" + "\DriverPackCatalog.xml"
 # or
 # $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq "System Name") -or ($_.type -eq "WinPE")} |sort type
 
-$catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $model)} | Sort-Object type # | format-table
-$catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $modelObject.model)} | Sort-Object type # | format-table
+$catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $model)} |Sort-Object type # | format-table
+$catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $modelObject.model)} |Sort-Object type # | format-table
 
 #5.
 
@@ -101,7 +101,7 @@ Get-Date | Out-File $logFile
  $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.type -eq "Win") -and 
  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq "OS Major Version" ) -and 
  ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq "OS Minor Version" )}
-# $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.type -eq "WinPE") -and ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq "OS Major Version" ) -and ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq "OS Minor Version" )}
+# $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.type -eq "WinPE") -and ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq "OS Major Version" ) -and ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq "OS Minor Version" )}
 
 #-----------------------------------------------------------------------------------------
 
@@ -119,12 +119,12 @@ Get-Date | Out-File $logFile
 # $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + $cabSelected.path
 $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + "/" + $cabSelected.path
 $Filename = [System.IO.Path]::GetFileName($cabDownloadLink)
-$downlodDestination = "$pwd" + "\" + $Filename
+$downloadDestination = "$pwd" + "\" + $Filename
 # echo "Downloading driver pack. This may take a few minutes."
 Write-output "Downloading driver pack. This may take a few minutes."
 Invoke-WebRequest $cabDownloadLink -OutFile $downloadDestination
 # $wc = New-Object System.Net.WebClient
-$wc.DownloadFile($cabDownloadLink, $downlodDestination)
+$wc.DownloadFile($cabDownloadLink, $downloadDestination)
 
 $cabSource =  $pwd + "\" + $Filename
 
