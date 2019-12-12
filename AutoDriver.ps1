@@ -51,24 +51,24 @@ $catalogXmlFile = "$pwd" + "\DriverPackCatalog.xml"
 $catalogXMLFile = "$pwd" + "\DriverPackCatalog.xml"
 [xml]$catalogXMLDoc = Get-Content $catalogXMLFile
 
-# $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.systemID -eq "BIOS ID") -or ($_.type -eq "WinPE")} |sort type
+# $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.systemID -eq "BIOS ID") -or ($_.type -eq "WinPE")} |sort type
 # or
-# $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.name -eq "System Name") -or ($_.type -eq "WinPE")} |sort type
+# $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq "System Name") -or ($_.type -eq "WinPE")} |sort type
 
-$catalogXmlDoc.DriverPackManifest.DriverPackage| ? {($_.SupportSystems.Brand.Model.name -eq $model)} |sort type # | format-table
-$catalogXmlDoc.DriverPackManifest.DriverPackage| ? {($_.SupportSystems.Brand.Model.name -eq $modelObject.model)} |sort type # | format-table
+$catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $model)} | Sort-Object type # | format-table
+$catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $modelObject.model)} | Sort-Object type # | format-table
 
 #5.
 
 $catalogXMLFile = "$pwd" + "\DriverPackCatalog.xml"
 [xml]$catalogXMLDoc = Get-Content $catalogXMLFile
 
-# $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.systemID -eq "BIOS ID") -and ($_.type -ne "WinPE") -and
+# $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.systemID -eq "BIOS ID") -and ($_.type -ne "WinPE") -and
 #  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq "OS Major Version" ) -and ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq "OS Minor Version" )}
 
 # or
 
-# $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.name -eq "System Name") -and ($_.type -ne "WinPE") -and
+# $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq "System Name") -and ($_.type -ne "WinPE") -and
 #  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq "OS Major Version" ) -and ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq "OS Minor Version" )}
 
 #--------------------------------------------------------------------------------------------------------------
@@ -80,13 +80,13 @@ if (!(Test-Path -Path "C:\Logs" -PathType Container))
 
 Get-Date | Out-File $logFile
 
- $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
+ $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
   ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
    ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minorVersion )} | Out-File $logFile
    
    [Console]::Write("Log file wrote to ") + $logFile
 
-# $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.name -eq $modelObject.model) -and
+# $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $modelObject.model) -and
 #  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
 #   ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minorVersion )}
 
@@ -98,7 +98,7 @@ Get-Date | Out-File $logFile
 
  [xml]$catalogXMLDoc = Get-Content $catalogXMLFile
 
- $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.type -eq "Win") -and 
+ $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.type -eq "Win") -and 
  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq "OS Major Version" ) -and 
  ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq "OS Minor Version" )}
 # $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.type -eq "WinPE") -and ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq "OS Major Version" ) -and ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq "OS Minor Version" )}
@@ -108,11 +108,11 @@ Get-Date | Out-File $logFile
  $catalogXMLFile = "$pwd" + "\DriverPackCatalog.xml"
 [xml]$catalogXMLDoc = Get-Content $catalogXMLFile
 
- $cabSelected = $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.name -eq $modelObject.model) -and
+ $cabSelected = $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $modelObject.model) -and
   ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
   ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minorVersion )} #($_.type -eq " WinPE") -and ($_.type -eq " Win") -and 
 
- $cabSelected = $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
+ $cabSelected = $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
   ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
   ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minorVersion )}
 
@@ -124,7 +124,7 @@ $downlodDestination = "$pwd" + "\" + $Filename
 Write-output "Downloading driver pack. This may take a few minutes."
 Invoke-WebRequest $cabDownloadLink -OutFile $downloadDestination
 # $wc = New-Object System.Net.WebClient
-# $wc.DownloadFile($cabDownloadLink, $downlodDestination)
+$wc.DownloadFile($cabDownloadLink, $downlodDestination)
 
 $cabSource =  $pwd + "\" + $Filename
 
