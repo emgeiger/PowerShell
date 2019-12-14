@@ -1,5 +1,5 @@
 #main code
-$logFile = C:\Logs\autoDriver.log
+$logFile = "C:\Logs\autoDriver.log"
 $wc = New-Object System.Net.WebClient
 
 # $majorVersion = [System.environment]::OSVersion.version.Major
@@ -27,9 +27,11 @@ $source = "http://downloads.dell.com/catalog/DriverPackCatalog.cab"
 $ftpSource = "ftp://downloads.dell.com/catalog/DriverPackCatalog.cab"
 $altFtpSource = "ftp://ftp.dell.com/catalog/DriverPackCatalog.cab"
 $pwd = "C:\Dell\CabInstall"
-$destination = "$pwd" + "\DriverPackCatalog.cab"
+$destination = "$pwd" + "\DriverPackCatalog.cab "
 
-$wc.DownloadFile($source, $destination)
+Invoke-WebRequest $source $destination
+# $wc.DownloadFile($source, $destination)
+wget $source $destination
 
 #2.
 
@@ -120,12 +122,12 @@ Get-Date | Out-File $logFile
 $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + "/" + $cabSelected.path
 $Filename = [System.IO.Path]::GetFileName($cabDownloadLink)
 $downlodDestination = "$pwd" + "\" + $Filename
-# echo "Downloading driver pack. This may take a few minutes."
+echo "Downloading driver pack. This may take a few minutes."
 Write-output "Downloading driver pack. This may take a few minutes."
 Invoke-WebRequest $cabDownloadLink -OutFile $downloadDestination
-# $wc = New-Object System.Net.WebClient
-# $wc.DownloadFile($cabDownloadLink, $downlodDestination)
-
+# $wc = New-Object System.Net.WebClient // not needed, duplicate, from the top, initialization
+$wc.DownloadFile($cabDownloadLink, $downlodDestination)
+zy
 $cabSource =  $pwd + "\" + $Filename
 
 if (!(Test-Path -Path "C:\Dell\CabInstall\cab" -PathType Container))
