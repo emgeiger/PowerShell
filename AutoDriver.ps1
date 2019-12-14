@@ -150,7 +150,8 @@ if (!(Test-Path -Path "C:\Logs" -PathType Container))
 $logFile = "C:\Logs\autoDriver.log"
 
 $logs = Get-ChildItem "C:\logs\" -Name -Include *.log | Where-Object { $_ -match "^autoDriver\..+$" }
-Get-Content $logs | Where-Object { $_ -match "hash.+:\s(?<regHash>.+)" } | Out-Null
+Get-Content "C:\logs\$logs" | Where-Object { $_ -match "hash.+:\s(?<regHash>.+)" } | Out-Null
+Get-Content "$env:SystemDrive\logs\$logs" | Where-Object { $_ -match "hash.+:\s(?<regHash>.+)" } | Out-Null
 $log = $Matches.regHash
 
 if (!(Test-Path -Path "C:\Dell\CabInstall\cab" -PathType Container))
