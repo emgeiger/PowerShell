@@ -122,7 +122,7 @@ $Filename = [System.IO.Path]::GetFileName($cabDownloadLink)
 $downloadDestination = "$pwd" + "\" + $Filename
 # echo "Downloading driver pack. This may take a few minutes."
 Write-output "Downloading driver pack. This may take a few minutes."
-Invoke-WebRequest $cabDownloadLink -OutFile $downloadDestination
+Invoke-WebRequest -Uri $cabDownloadLink -OutFile $downloadDestination
 # $wc = New-Object System.Net.WebClient
 $wc.DownloadFile($cabDownloadLink, $downloadDestination)
 
@@ -140,9 +140,9 @@ PNPUTIL /add-driver $pwd\*.inf /subdirs /install
 
 write-warning "Need to run BIOS manually"
 
-Pause
+Remove-Item -Path "C:\Dell\CabInstall" -Recurse
 
-# Remove-Item -Path "C:\Dell\CabInstall" -Recurse
+Pause
 
 # $DebugPreference = "Continue"
 # $VerbosePreference = "Continue"
