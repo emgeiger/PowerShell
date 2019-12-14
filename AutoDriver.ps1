@@ -42,9 +42,9 @@ $altFtpSource = "ftp://ftp.dell.com/catalog/DriverPackCatalog.cab"
 $pwd = "C:\Dell\CabInstall"
 $destination = "$pwd" + "\DriverPackCatalog.cab "
 
-Invoke-WebRequest $source $destination
-# $wc.DownloadFile($source, $destination)
-wget $source $destination
+# Invoke-WebRequest $source $destination
+$wc.DownloadFile($source, $destination)
+# wget $source $destination
 
 #2.
 
@@ -165,9 +165,9 @@ $pwd = "C:\Dell\CabInstall\cab"
 if(Test-Path -Path "C:\Dell\CabInstall\cab\$cab" -PathType Leaf -Include *.cab)
 {
     $cabFile = Get-ChildItem "C:\Dell\CabInstall\cab" -Name -Include *.cab
-    $cabFile -match "(?s)^(?<Model>\d+\w?)-(?<os>win.+)-(?<revision>A\d+)-(?<releaseId>.+)\.cab$" | Out-Null
+    $cabFile -match "(?s)^(?<Model>\w?\d+\w?)-(?<os>.+\d+?)-(?<revision>A\d+)-(?<releaseId>.+)\.cab$" | Out-Null
 
-#   $cabFile | Select-String -Pattern "(?s)^(\d+\w?)-(win.+)-(A\d+)-(.+)\.cab$"
+#   $cabFile | Select-String -Pattern "(?s)^(\w?\d+\w?)-(.+\d+?)-(A\d+)-(.+)\.cab$"
     
     $modelId = $Matches[1]
     $modelId = $Matches.Model
