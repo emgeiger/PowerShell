@@ -1,6 +1,20 @@
 #main code
-$logFile = "C:\Logs\autoDriver.log"
+
 $wc = New-Object System.Net.WebClient
+
+function logFile
+{
+[cmdletBinding()]
+param([string]$logFile)
+
+$catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
+ ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $major) -and
+ ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minor)} | Out-File $logFile
+
+ Get-Date | Out-File -Append $logFile
+
+[Console]::Write("Log file wrote to ") + $logFile
+}
 
 # $majorVersion = [System.environment]::OSVersion.version.Major
 # $minorVersion = [System.environment]::OSVersion.version.Minor
@@ -16,9 +30,9 @@ $minor = $Matches[2]
 $major = $Matches[0]
 
 $model = (Get-WmiObject -Class Win32_computerSystem -ComputerName . -Namespace root\cimv2).model
-$modelObject = Get-WmiObject -Class Win32_computerSystem -ComputerName . -Namespace root\cimv2
-$modelList = Get-WmiObject -Query "Select * FROM Win32_ComputerSystem" -ComputerName . -Namespace root\cimv2 | Select-Object -Property model | Format-List -Expand EnumOnly
-$modelTable = Get-WmiObject -Query "Select * FROM Win32_ComputerSystem" -ComputerName . -Namespace root\cimv2 | Select-Object -Property model | Format-Table -HideTableHeaders
+# $modelObject = Get-WmiObject -Class Win32_computerSystem -ComputerName . -Namespace root\cimv2
+# $modelList = Get-WmiObject -Query "Select * FROM Win32_ComputerSystem" -ComputerName . -Namespace root\cimv2 | Select-Object -Property model | Format-List -Expand EnumOnly
+# $modelTable = Get-WmiObject -Query "Select * FROM Win32_ComputerSystem" -ComputerName . -Namespace root\cimv2 | Select-Object -Property model | Format-Table -HideTableHeaders
 if (!(Test-Path -Path "C:\Dell\CabInstall" -PathType Container))
 {
     New-Item -Path "C:\Dell\CabInstall" -ItemType Directory
@@ -56,12 +70,15 @@ $catalogXMLFile = "$pwd" + "\DriverPackCatalog.xml"
 # $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq "System Name") -or ($_.type -eq "WinPE")} |sort type
 
 $catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $model)} |Sort-Object type # | format-table
-$catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $modelObject.model)} |Sort-Object type # | format-table
+# $catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $modelObject.model)} |Sort-Object type # | format-table
 
 #5.
 
 $catalogXMLFile = "$pwd" + "\DriverPackCatalog.xml"
 [xml]$catalogXMLDoc = Get-Content $catalogXMLFile
+
+# Examples
+#--------------------------------------------------------------------------------------------------------------
 
 # $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.systemID -eq "BIOS ID") -and ($_.type -ne "WinPE") -and
 #  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq "OS Major Version" ) -and ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq "OS Minor Version" )}
@@ -72,6 +89,8 @@ $catalogXMLFile = "$pwd" + "\DriverPackCatalog.xml"
 #  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq "OS Major Version" ) -and ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq "OS Minor Version" )}
 
 #--------------------------------------------------------------------------------------------------------------
+
+<#
 
 if (!(Test-Path -Path "C:\Logs" -PathType Container))
 {
@@ -85,6 +104,7 @@ Get-Date | Out-File $logFile
    ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minorVersion )} | Out-File $logFile
    
    [Console]::Write("Log file wrote to ") + $logFile
+#>
 
 # $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $modelObject.model) -and
 #  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
@@ -105,21 +125,72 @@ Get-Date | Out-File $logFile
 
 #-----------------------------------------------------------------------------------------
 
- $catalogXMLFile = "$pwd" + "\DriverPackCatalog.xml"
+$catalogXMLFile = "$pwd" + "\DriverPackCatalog.xml"
 [xml]$catalogXMLDoc = Get-Content $catalogXMLFile
 
- $cabSelected = $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $modelObject.model) -and
-  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
-  ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minorVersion )} #($_.type -eq " WinPE") -and ($_.type -eq " Win") -and 
+# $cabSelected = $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $modelObject.model) -and
+#   ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $major ) -and
+#   ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minor )} #($_.type -eq " WinPE") -and ($_.type -eq " Win") -and 
 
  $cabSelected = $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
-  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
-  ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minorVersion )}
+  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $major ) -and
+  ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minor )}
+
+$cab = Split-Path -Leaf $cabSelected.path
+
+$hash = $cabSelected.hashMD5
+$releaseId = $cabSelected.releaseID
+$dellVersion = $cabSelected.dellVersion
+
+if (!(Test-Path -Path "C:\Logs" -PathType Container))
+{
+    New-Item -Path "C:\Logs" -ItemType Directory
+}
+
+$logFile = "C:\Logs\autoDriver.log"
+
+$logs = Get-ChildItem "C:\logs\" -Name -Include *.log | Where-Object { $_ -match "^autoDriver\..+$" }
+Get-Content $logs | Where-Object { $_ -match "hash.+:\s(?<regHash>.+)" } | Out-Null
+$log = $Matches.regHash
+
+if (!(Test-Path -Path "C:\Dell\CabInstall\cab" -PathType Container))
+{
+    New-Item -Path "C:\Dell\CabInstall\cab" -ItemType Directory
+}
+
+$pwd = "C:\Dell\CabInstall\cab"
+
+if(Test-Path -Path "C:\Dell\CabInstall\cab\$cab" -PathType Leaf -Include *.cab)
+{
+    $cabFile = Get-ChildItem "C:\Dell\CabInstall\cab" -Name -Include *.cab
+    $cabFile -match "(?s)^(?<Model>\d+\w?)-(?<os>win.+)-(?<revision>A\d+)-(?<releaseId>.+)\.cab$" | Out-Null
+
+#   $cabFile | Select-String -Pattern "(?s)^(\d+\w?)-(win.+)-(A\d+)-(.+)\.cab$"
+    
+    $modelId = $Matches[1]
+    $modelId = $Matches.Model
+    $os = $Matches[2]
+    $os = $Matches.os
+    $revision = $Matches[3]
+    $revision = $Matches.revision
+    $release = $Matches[4]
+    $release = $Matches.releaseId
+}
+
+if($hash -eq $log -or $log -eq $hash -and $revision -eq $dellVersion -and $release -eq $releaseId)
+{
+    Write-Output "Your drivers are already up-to-date"
+    pause
+    break
+    exit
+}
 
 # $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + $cabSelected.path
 $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + "/" + $cabSelected.path
 $Filename = [System.IO.Path]::GetFileName($cabDownloadLink)
-$downloadDestination = "$pwd" + "\" + $Filename
+# $fileName  = Split-Path -Leaf $cabDownloadLink
+$fileName  = Split-Path -Leaf $cabSelected.path
+$downloadDestination = "$pwd" + "\" + $fileName
 # echo "Downloading driver pack. This may take a few minutes."
 Write-output "Downloading driver pack. This may take a few minutes."
 Invoke-WebRequest -Uri $cabDownloadLink -OutFile $downloadDestination
@@ -128,21 +199,22 @@ $wc.DownloadFile($cabDownloadLink, $downloadDestination)
 
 $cabSource =  $pwd + "\" + $Filename
 
-if (!(Test-Path -Path "C:\Dell\CabInstall\cab" -PathType Container))
-{
-    New-Item -Path "C:\Dell\CabInstall\cab" -ItemType Directory
-}
-
-$pwd = "C:\Dell\CabInstall\cab"
 # $cabDestination = $pwd + "\" + $Filename
 EXPAND $cabSource $pwd -F:*
 PNPUTIL /add-driver $pwd\*.inf /subdirs /install
 
+if (!(Test-Path -Path "C:\Logs" -PathType Container))
+{
+    New-Item -Path "C:\Logs" -ItemType Directory
+}
+
+# write-verbose -Message Done
+logFile($logFile)
 write-warning "Need to run BIOS manually"
 
-Remove-Item -Path "C:\Dell\CabInstall" -Recurse
-
 Pause
+
+# Remove-Item -Path "C:\Dell\CabInstall" -Recurse
 
 # $DebugPreference = "Continue"
 # $VerbosePreference = "Continue"
