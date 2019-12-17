@@ -150,10 +150,13 @@ if (!(Test-Path -Path "C:\Logs" -PathType Container))
 
 $logFile = "C:\Logs\autoDriver.log"
 
-$logs = Get-ChildItem "C:\logs\" -Name -Include *.log | Where-Object { $_ -match "^autoDriver\..+$" }
-Get-Content "C:\logs\$logs" | Where-Object { $_ -match "hash.+:\s(?<regHash>.+)" } | Out-Null
-Get-Content "$env:SystemDrive\logs\$logs" | Where-Object { $_ -match "hash.+:\s(?<regHash>.+)" } | Out-Null
-$log = $Matches.regHash
+if (Test-Path -Path "C:\Logs\autoDriver.log" -PathType Leaf)
+{
+    $logs = Get-ChildItem "C:\logs\" -Name -Include *.log | Where-Object { $_ -match "^autoDriver\..+$" }
+    Get-Content "C:\logs\$logs" | Where-Object { $_ -match "hash.+:\s(?<regHash>.+)" } | Out-Null
+    Get-Content "$env:SystemDrive\logs\$logs" | Where-Object { $_ -match "hash.+:\s(?<regHash>.+)" } | Out-Null
+    $log = $Matches.regHash
+}
 
 if (!(Test-Path -Path "C:\Dell\CabInstall\cab" -PathType Container))
 {
@@ -195,9 +198,10 @@ $fileName  = Split-Path -Leaf $cabSelected.path
 $downloadDestination = "$pwd" + "\" + $fileName
 # echo "Downloading driver pack. This may take a few minutes."
 Write-output "Downloading driver pack. This may take a few minutes."
-Invoke-WebRequest -Uri $cabDownloadLink -OutFile $downloadDestination
+# Invoke-WebRequest -Uri $cabDownloadLink -OutFile $downloadDestination
 # $wc = New-Object System.Net.WebClient
 $wc.DownloadFile($cabDownloadLink, $downloadDestination)
+wget $cabDownloadLink $downloadDestination
 
 $cabSource =  $pwd + "\" + $Filename
 
