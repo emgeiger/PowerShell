@@ -15,6 +15,9 @@ $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.
 [Console]::Write("Log file wrote to ") + $logFile
 }
 
+$bios = (Get-CimInstance -ClassName Win32_BIOS).Name
+$serial = (Get-CimInstance -ClassName Win32_BIOS).SerialNumber
+
 # $majorVersion = [System.environment]::OSVersion.version.Major
 # $minorVersion = [System.environment]::OSVersion.version.Minor
 
@@ -207,6 +210,7 @@ $cabSource =  $pwd + "\" + $Filename
 
 # $cabDestination = $pwd + "\" + $Filename
 EXPAND $cabSource $pwd -F:*
+# pause
 PNPUTIL /add-driver $pwd\*.inf /subdirs /install
 
 if (!(Test-Path -Path "C:\Logs" -PathType Container))
@@ -217,6 +221,7 @@ if (!(Test-Path -Path "C:\Logs" -PathType Container))
 # write-verbose -Message Done
 logFile($logFile)
 write-warning "Need to run BIOS manually"
+[Console]::Write("Your BIOS version is ") + $bios
 
 Pause
 
