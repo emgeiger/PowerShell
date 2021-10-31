@@ -12,7 +12,7 @@ $catalogXMLDoc.DriverPackManifest.DriverPackage| ? { ($_.SupportedSystems.Brand.
 
  Get-Date | Out-File -Append $logFile
 
-[Console]::Write("Log file wrote to ") + $logFile
+Write-Output "Log file wrote to " $logFile
 }
 
 $bios = (Get-CimInstance -ClassName Win32_BIOS).Name
