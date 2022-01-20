@@ -4,8 +4,21 @@
 # @Name Find-ADComputer
 # @Description Uses .NET to ping a computer, and determine the status, to let you know whether it is in AD, or just offline.
 #####################
+
+$IPs = @(
+
+)
+
+function Build-Table
+{
+[cmdletBinding()]
+Param([string]$Label, [PSCustomObject[]]$Expression)
+
+}
+
 $path = $PSScriptRoot
-[System.IO.File]::ReadLines("$path\IPs.txt") | Select-String -Pattern "[0-9]+.[0-9]+.[0-9]+.[0-9]+" | Select-Object -ExpandProperty Matches | foreach {
+# [System.IO.File]::ReadLines("$path\IPs.txt") | Select-String -Pattern "[0-9]+.[0-9]+.[0-9]+.[0-9]+" | Select-Object -ExpandProperty Matches
+$IPs | foreach {
     $IP = $_
     try
     {
