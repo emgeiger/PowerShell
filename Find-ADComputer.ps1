@@ -19,6 +19,9 @@ Param([string]$Label, [PSCustomObject[]]$Expression)
 $path = $PSScriptRoot
 $Script:sucuess = New-Object System.Collections.ArrayList
 #[System.IO.File]::ReadLines("$path\IPs.txt") | Select-String -Pattern "[0-9]+.[0-9]+.[0-9]+.[0-9]+" | Select-Object -ExpandProperty Matches
+
+# [System.IO.File]::ReadLines("$path\IPs.txt") | Select-String -Pattern "[0-9]+.[0-9]+.[0-9]+.[0-9]+" | Select-Object -ExpandProperty Matches
+
 $IPs | foreach {
     $IP = $_
     try
