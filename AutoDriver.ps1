@@ -1,3 +1,6 @@
+#***********************************************************************************
+# @Author Eric Geiger
+#***********************************************************************************
 #main code
 $wc = New-Object System.Net.WebClient
 
@@ -30,6 +33,9 @@ $version = (Get-CimInstance -ClassName Win32_OperatingSystem).Version -match "(?
 $minor = $Matches[2]
 [string]$major = (Get-CimInstance -ClassName Win32_OperatingSystem).Version -match "(?s)^[0-9]+"
 $major = $Matches[0]
+$totalVersion = (Get-CimInstance -ClassName Win32_OperatingSystem).Version -match "(?s)^([0-9]+)\.([0-9]+)\.([0-9]+)"
+$buildNumber = $Matches[3]
+$rev = $Matches[3]
 
 $model = (Get-WmiObject -Class Win32_computerSystem -ComputerName . -Namespace root\cimv2).model
 # $modelObject = Get-WmiObject -Class Win32_computerSystem -ComputerName . -Namespace root\cimv2
@@ -140,7 +146,7 @@ $catalogXMLFile = "$pwd" + "\DriverPackCatalog.xml"
   ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $major ) -and
   ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minor )}
 
-$cab = Split-Path -Leaf $cabSelected.path
+# $cab = Split-Path -Leaf $cabSelected.path
 
 $hash = $cabSelected.hashMD5
 $releaseId = $cabSelected.releaseID
@@ -192,9 +198,13 @@ if($hash -eq $log -or $log -eq $hash -and $revision -eq $dellVersion -and $relea
     break
     exit
 }
-
-# $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + $cabSelected.path
-$cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + "/" + $cabSelected.path
+# If not Windows 11
+    if($rev -lt 22000)
+    {
+        # $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + $cabSelected[0].path
+        $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + "/" + $cabSelected[0].path
+    }
+ 
 $Filename = [System.IO.Path]::GetFileName($cabDownloadLink)
 # $fileName  = Split-Path -Leaf $cabDownloadLink
 $fileName  = Split-Path -Leaf $cabSelected.path
