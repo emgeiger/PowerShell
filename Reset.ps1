@@ -1,1 +1,3 @@
-[System.IO.File]::ReadLines()
+[System.IO.File]::ReadLines("") | foreach { # % {
+    
+}
