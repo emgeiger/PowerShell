@@ -1,6 +1,8 @@
 #***********************************************************************************
 # @Author Eric Geiger
 #***********************************************************************************
+Set-PSDebug -Off # -Trace 2 -Step
+
 #main code
 $wc = New-Object System.Net.WebClient
 
@@ -46,8 +48,8 @@ if (!(Test-Path -Path "C:\Dell\CabInstall" -PathType Container))
     New-Item -Path "C:\Dell\CabInstall" -ItemType Directory
 }
 $source = "http://downloads.dell.com/catalog/DriverPackCatalog.cab"
-$ftpSource = "ftp://downloads.dell.com/catalog/DriverPackCatalog.cab"
-$altFtpSource = "ftp://ftp.dell.com/catalog/DriverPackCatalog.cab"
+# $ftpSource = "ftp://downloads.dell.com/catalog/DriverPackCatalog.cab"
+# $altFtpSource = "ftp://ftp.dell.com/catalog/DriverPackCatalog.cab"
 $pwd = "C:\Dell\CabInstall"
 $destination = "$pwd" + "\DriverPackCatalog.cab "
 
@@ -199,11 +201,27 @@ if($hash -eq $log -or $log -eq $hash -and $revision -eq $dellVersion -and $relea
     exit
 }
 # If not Windows 11
-    if($rev -lt 22000)
-    {
-        # $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + $cabSelected[0].path
-        $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + "/" + $cabSelected[0].path
-    }
+if($rev -lt 22000)
+{
+    # Windows 10 - CAB file
+    $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + "/" + $cabSelected[0].path
+    $fileExtension = "cab"
+}
+else
+{
+    # Windows 11 - EXE file
+    $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + "/" + $cabSelected[1].path
+    $fileExtension = "exe"
+}
+
+$Filename = [System.IO.Path]::GetFileName($cabDownloadLink)
+$downloadDestination = "$pwd" + "\" + $fileName
+Write-output "Downloading $fileExtension driver pack for $(if($rev -lt 22000){'Windows 10'}else{'Windows 11'}). This may take a few minutes."
+$wc.DownloadFile($cabDownloadLink, $downloadDestination)
+
+$fileSource = $pwd + "\" + $Filename
+
+# $cabDownloadLink = "http://" + $catalogXMLDoc.DriverPackManifest.baseLocation + "/" + $cabSelected[0].path
  
 $Filename = [System.IO.Path]::GetFileName($cabDownloadLink)
 # $fileName  = Split-Path -Leaf $cabDownloadLink
@@ -214,7 +232,7 @@ Write-output "Downloading driver pack. This may take a few minutes."
 # Invoke-WebRequest -Uri $cabDownloadLink -OutFile $downloadDestination
 # $wc = New-Object System.Net.WebClient
 $wc.DownloadFile($cabDownloadLink, $downloadDestination)
-wget $cabDownloadLink $downloadDestination
+# wget $cabDownloadLink $downloadDestination
 
 $cabSource =  $pwd + "\" + $Filename
 

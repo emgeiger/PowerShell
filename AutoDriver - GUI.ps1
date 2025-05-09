@@ -63,6 +63,9 @@ $listBox.Location = New-Object System.Drawing.Point(10, 40)
 $listBox.Size = New-Object System.Drawing.Size(120, 20)
 $listBox.Height = 80
 
+[void] $listBox.Items.Add("Latitude 5490")
+
+<#
 [void] $listBox.Items.Add("Optiplex 7060")
 [void] $listBox.Items.Add("Optiplex 7090")
 # [void] $listBox.Items.Add("Optiplex 9020")
@@ -70,7 +73,7 @@ $listBox.Height = 80
 [void] $listBox.Items.Add("Precision Tower 3620")
 [void] $listBox.Items.Add("Precision 3650 Tower")
 [void] $listBox.Items.Add("Precision 5540")
-
+#>
 <#
 [void] $listBox.Items.Add("Latitude E5470")
 [void] $listBox.Items.Add("Latitude 5480")

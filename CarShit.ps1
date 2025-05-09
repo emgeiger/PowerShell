@@ -45,14 +45,14 @@ $mainForm.Controls.Add($chart)
 
 # Create labels
 $fullAverageLabel = New-Object System.Windows.Forms.Label
-$fullAverageLabel.Text = "Full Focus Average: 0"
+$fullAverageLabel.Text = "Full Focus Average:" # 0"
 $fullAverageLabel.Left = 25
 $fullAverageLabel.Top = 440
 $fullAverageLabel.Width = 200
 $mainForm.Controls.Add($fullAverageLabel)
 
 $sampleLabel = New-Object System.Windows.Forms.Label
-$sampleLabel.Text = "Sample Buffer Average: 0"
+$sampleLabel.Text = "Sample Buffer Average:" # 0"
 $sampleLabel.Left = 25
 $sampleLabel.Top = 470
 $sampleLabel.Width = 200
@@ -99,7 +99,7 @@ function Start-Arduino {
     try {
         if (-not $ard.IsOpen) {
             $ard.Open()
-            $textBox.AppendText("Arduino connected on COM4`n")
+            $textBox.AppendText("Arduino connected on " + $ard.PortName + "`n") # COM4`n")
         }
     }
     catch {
@@ -190,7 +190,7 @@ function Start-BtConnection
             }
         })
         
-        $textBox.AppendText("BCI device connected on COM10`n")
+        $textBox.AppendText("BCI device connected on " + $script:bt.PortName + "`n") # COM10`n")
         return $true
     }
     catch {
