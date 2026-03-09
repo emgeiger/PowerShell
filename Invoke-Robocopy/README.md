@@ -104,11 +104,16 @@ Invoke-Robocopy -Source C:\Data -Destination D:\Backup -LogPath C:\Logs\copy.log
 ### Copy all file attributes (Security, Owner, Auditing)
 ```powershell
 Invoke-Robocopy -Source C:\Data -Destination D:\Backup -CopyAll -Subdirectories
+```
+
 ### Copy with security attributes
 ```powershell
 Invoke-Robocopy -Source C:\Data -Destination D:\Backup -Sec -Subdirectories
 ```
 
+### Purge destination-only items (preview first)
+```powershell
+Invoke-Robocopy -Source C:\Data -Destination D:\Backup -Purge -WhatIf
 ```
 
 ## Parameter Sections
@@ -128,6 +133,7 @@ Invoke-Robocopy -Source C:\Data -Destination D:\Backup -Sec -Subdirectories
 - `Subdirectories` - Copy subdirectories
 - `IncludeEmptySubdirectories` - Include empty subdirectories
 - `Mirror` - Mirror source to destination (DESTRUCTIVE)
+- `Purge` - Delete destination-only files/directories (DESTRUCTIVE)
 - `MoveFiles` - Move files after copying
 - `MoveFilesAndDirectories` - Move files and directories
 - `Sec` - Copy with security attributes (D,A,T,S) - cannot combine with CopyFlags or CopyAll

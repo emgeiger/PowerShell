@@ -69,6 +69,10 @@ function Invoke-Robocopy {
         Move files and directories (delete from source after copying). Maps to /MOVE.
         Alias: MOVE
 
+    .PARAMETER Purge
+        Delete destination files and directories that no longer exist in source.
+        DESTRUCTIVE: Use with caution. Maps to /PURGE.
+
     .PARAMETER Sec
         Copy files with SECurity (equivalent to -CopyFlags D,A,T,S).
         Automatically sets D (Data), A (Attributes), T (Timestamps), S (Security/NTFS ACLs).
@@ -200,6 +204,11 @@ function Invoke-Robocopy {
         Recursive copy with security attributes (Data, Attributes, Timestamps, Security).
 
     .EXAMPLE
+        Invoke-Robocopy -Source C:\Data -Destination D:\Backup -Purge -WhatIf
+
+        Preview deleting destination-only items without executing changes.
+
+    .EXAMPLE
         Invoke-Robocopy -Source C:\Data -Destination D:\Backup -MaxFileAgeDays 30 -PassThruResult
 
         Copy only files modified within the last 30 days and return structured result object.
@@ -275,6 +284,8 @@ function Invoke-Robocopy {
 
         [Alias('MOVE')]
         [switch]$MoveFilesAndDirectories,
+
+        [switch]$Purge,
 
         [switch]$Sec,
 
@@ -376,7 +387,7 @@ function Invoke-Robocopy {
         $arguments = New-RobocopyArgumentList -BoundParameters $PSBoundParameters -Source $normalizedSource -Destination $normalizedDestination
 
         $activity = "Robocopy from '$normalizedSource' to '$normalizedDestination'"
-        $isDestructive = $Mirror -or $MoveFiles -or $MoveFilesAndDirectories
+        $isDestructive = $Mirror -or $MoveFiles -or $MoveFilesAndDirectories -or $Purge
         $action = if ($isDestructive) { 'Copy and delete destination/source items as configured' } else { 'Copy files' }
 
         if (-not $PSCmdlet.ShouldProcess($activity, $action)) {

@@ -36,6 +36,7 @@ function New-RobocopyArgumentList {
     if ($BoundParameters.ContainsKey('Subdirectories')) { $argumentList.Add('/S') }
     if ($BoundParameters.ContainsKey('IncludeEmptySubdirectories')) { $argumentList.Add('/E') }
     if ($BoundParameters.ContainsKey('Mirror')) { $argumentList.Add('/MIR') }
+    if ($BoundParameters.ContainsKey('Purge')) { $argumentList.Add('/PURGE') }
     if ($BoundParameters.ContainsKey('MoveFiles')) { $argumentList.Add('/MOV') }
     if ($BoundParameters.ContainsKey('MoveFilesAndDirectories')) { $argumentList.Add('/MOVE') }
 
