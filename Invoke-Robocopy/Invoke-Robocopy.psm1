@@ -69,17 +69,23 @@ function Invoke-Robocopy {
         Move files and directories (delete from source after copying). Maps to /MOVE.
         Alias: MOVE
 
+    .PARAMETER Sec
+        Copy files with SECurity (equivalent to -CopyFlags D,A,T,S).
+        Automatically sets D (Data), A (Attributes), T (Timestamps), S (Security/NTFS ACLs).
+        Cannot be combined with -CopyFlags or -CopyAll.
+        Maps to /COPY:DATS.
+
     .PARAMETER CopyAll
         Copy all file attributes (equivalent to -CopyFlags D,A,T,S,O,U).
         Automatically sets D (Data), A (Attributes), T (Timestamps), S (Security/NTFS ACLs),
-        O (Owner info), U (aUditing info). Cannot be combined with -CopyFlags.
+        O (Owner info), U (aUditing info). Cannot be combined with -CopyFlags or -Sec.
         Maps to /COPY:DATSOU.
 
     .PARAMETER CopyFlags
         File attributes to copy. Default: D,A,T (Data, Attributes, Timestamps).
         Valid values: D (Data), A (Attributes), T (Timestamps), S (Security/NTFS ACLs),
         O (Owner info), U (aUditing info), X (skip alt data streams).
-        Maps to /COPY:flags. Cannot be combined with -CopyAll.
+        Maps to /COPY:flags. Cannot be combined with -Sec or -CopyAll.
 
     .PARAMETER DirectoryCopyFlags
         Directory attributes to copy. Default: D,A (Data, Attributes).
@@ -189,6 +195,11 @@ function Invoke-Robocopy {
         Recursive copy with all file attributes (Data, Attributes, Timestamps, Security, Owner, Auditing).
 
     .EXAMPLE
+        Invoke-Robocopy -Source C:\Data -Destination D:\Backup -Sec -Subdirectories
+
+        Recursive copy with security attributes (Data, Attributes, Timestamps, Security).
+
+    .EXAMPLE
         Invoke-Robocopy -Source C:\Data -Destination D:\Backup -MaxFileAgeDays 30 -PassThruResult
 
         Copy only files modified within the last 30 days and return structured result object.
@@ -264,6 +275,8 @@ function Invoke-Robocopy {
 
         [Alias('MOVE')]
         [switch]$MoveFilesAndDirectories,
+
+        [switch]$Sec,
 
         [switch]$CopyAll,
 
@@ -347,6 +360,10 @@ function Invoke-Robocopy {
 
         if ($PSBoundParameters.ContainsKey('MonitorSourceChanges') -xor $PSBoundParameters.ContainsKey('MonitorRunMinutes')) {
             throw "-MonitorSourceChanges and -MonitorRunMinutes must be used together."
+        }
+
+        if ($Sec -and ($CopyAll -or $PSBoundParameters.ContainsKey('CopyFlags'))) {
+            throw "-Sec cannot be combined with -CopyAll or -CopyFlags. Use one or the other."
         }
 
         if ($CopyAll -and $PSBoundParameters.ContainsKey('CopyFlags')) {
