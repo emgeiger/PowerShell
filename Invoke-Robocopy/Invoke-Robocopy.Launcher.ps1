@@ -46,6 +46,8 @@ param(
 
     [Alias('MOVE')]
     [switch]$MoveFilesAndDirectories,
+    [switch]$Sec,
+
 
     [switch]$CopyAll,
 
