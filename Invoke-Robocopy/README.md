@@ -101,6 +101,11 @@ Invoke-Robocopy -Source C:\Logs -Destination D:\Backup -File '*.log','*.txt' -Ex
 Invoke-Robocopy -Source C:\Data -Destination D:\Backup -LogPath C:\Logs\copy.log -Tee -NoProgress
 ```
 
+### Copy all file attributes (Security, Owner, Auditing)
+```powershell
+Invoke-Robocopy -Source C:\Data -Destination D:\Backup -CopyAll -Subdirectories
+```
+
 ## Parameter Sections
 
 ### Source/Destination
@@ -120,7 +125,8 @@ Invoke-Robocopy -Source C:\Data -Destination D:\Backup -LogPath C:\Logs\copy.log
 - `Mirror` - Mirror source to destination (DESTRUCTIVE)
 - `MoveFiles` - Move files after copying
 - `MoveFilesAndDirectories` - Move files and directories
-- `CopyFlags` - File attributes to copy
+- `CopyAll` - Copy all file attributes (D,A,T,S,O,U) - cannot combine with CopyFlags
+- `CopyFlags` - File attributes to copy (custom selection)
 - `DirectoryCopyFlags` - Directory attributes to copy
 - `RestartableMode` - Restartable network copy mode
 - `BackupMode` - Copy in backup mode

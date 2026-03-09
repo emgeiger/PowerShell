@@ -47,6 +47,8 @@ param(
     [Alias('MOVE')]
     [switch]$MoveFilesAndDirectories,
 
+    [switch]$CopyAll,
+
     [ValidateSet('D', 'A', 'T', 'S', 'O', 'U', 'X')]
     [string[]]$CopyFlags = @('D', 'A', 'T'),
 

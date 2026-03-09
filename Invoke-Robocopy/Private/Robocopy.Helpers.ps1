@@ -52,7 +52,10 @@ function New-RobocopyArgumentList {
     if ($BoundParameters.ContainsKey('MaxFileAgeDays')) { $argumentList.Add("/MAXAGE:$($BoundParameters.MaxFileAgeDays)") }
     if ($BoundParameters.ContainsKey('MinFileAgeDays')) { $argumentList.Add("/MINAGE:$($BoundParameters.MinFileAgeDays)") }
 
-    if ($BoundParameters.ContainsKey('CopyFlags')) {
+    if ($BoundParameters.ContainsKey('CopyAll')) {
+        $argumentList.Add('/COPY:DATSOU')
+    }
+    elseif ($BoundParameters.ContainsKey('CopyFlags')) {
         $argumentList.Add("/COPY:$([string]::Join('', $BoundParameters.CopyFlags))")
     }
 

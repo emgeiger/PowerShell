@@ -69,11 +69,17 @@ function Invoke-Robocopy {
         Move files and directories (delete from source after copying). Maps to /MOVE.
         Alias: MOVE
 
+    .PARAMETER CopyAll
+        Copy all file attributes (equivalent to -CopyFlags D,A,T,S,O,U).
+        Automatically sets D (Data), A (Attributes), T (Timestamps), S (Security/NTFS ACLs),
+        O (Owner info), U (aUditing info). Cannot be combined with -CopyFlags.
+        Maps to /COPY:DATSOU.
+
     .PARAMETER CopyFlags
         File attributes to copy. Default: D,A,T (Data, Attributes, Timestamps).
         Valid values: D (Data), A (Attributes), T (Timestamps), S (Security/NTFS ACLs),
         O (Owner info), U (aUditing info), X (skip alt data streams).
-        Maps to /COPY:flags.
+        Maps to /COPY:flags. Cannot be combined with -CopyAll.
 
     .PARAMETER DirectoryCopyFlags
         Directory attributes to copy. Default: D,A (Data, Attributes).
@@ -178,6 +184,11 @@ function Invoke-Robocopy {
         Copy to network share in backup mode, preserving all NTFS attributes and timestamps.
 
     .EXAMPLE
+        Invoke-Robocopy -Source C:\Data -Destination D:\Backup -CopyAll -Subdirectories
+
+        Recursive copy with all file attributes (Data, Attributes, Timestamps, Security, Owner, Auditing).
+
+    .EXAMPLE
         Invoke-Robocopy -Source C:\Data -Destination D:\Backup -MaxFileAgeDays 30 -PassThruResult
 
         Copy only files modified within the last 30 days and return structured result object.
@@ -253,6 +264,8 @@ function Invoke-Robocopy {
 
         [Alias('MOVE')]
         [switch]$MoveFilesAndDirectories,
+
+        [switch]$CopyAll,
 
         [ValidateSet('D', 'A', 'T', 'S', 'O', 'U', 'X')]
         [string[]]$CopyFlags = @('D', 'A', 'T'),
@@ -334,6 +347,10 @@ function Invoke-Robocopy {
 
         if ($PSBoundParameters.ContainsKey('MonitorSourceChanges') -xor $PSBoundParameters.ContainsKey('MonitorRunMinutes')) {
             throw "-MonitorSourceChanges and -MonitorRunMinutes must be used together."
+        }
+
+        if ($CopyAll -and $PSBoundParameters.ContainsKey('CopyFlags')) {
+            throw "-CopyAll cannot be combined with -CopyFlags. Use one or the other."
         }
 
         $normalizedSource = (Resolve-Path -LiteralPath $Source).Path.TrimEnd('\\')
