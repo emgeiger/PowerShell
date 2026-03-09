@@ -43,6 +43,7 @@ param(
 
 	[Alias('MOVE')]
 	[switch]$MoveFilesAndDirectories,
+	[switch]$Purge,
 	[switch]$Sec,
 
 
