@@ -58,4 +58,8 @@ function Load-XAML($file)
     # $reader = New-Object System.Xml.XmlReader $xmlMainWindow
     # $form = [System.Windows.Markup.XamlReader]::Load($reader)
 
+Add-Type -AssemblyName System.Windows.Forms
+. (Join-Path $PSScriptRoot 'test.designer.ps1')
+$Form1.ShowDialog()
+
 #    $form.ShowDialog() | Out-Null
