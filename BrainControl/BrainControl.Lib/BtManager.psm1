@@ -1,81 +1,157 @@
-﻿Add-Type -AssemblyName System.Drawing
-Add-Type -AssemblyName System.Windows.Forms
+﻿using namespace System
+using namespace System.Collections.Generic
+using namespace System.IO.Ports
 
-$components = New-Object System.ComponentModel.IContainer
+class BtManager {
+    static [int]$MAX_PACKET_LENGTH = 32
+    static [int]$EEG_POWER_BANDS = 8
 
-function dispose
-{
-[cmdletBinding()]
-params(boolean $disposing)
-    
-    if($disposing -and ($components -ne $null))
-    {
-        $components.Dispose()
+    [SerialPort]$bt
+    [byte]$lastByte = 0
+    [bool]$inPacket = $false
+    [bool]$freshPacket = $false
+    [int]$packetIndex = 0
+    [int]$checksumAccumulator = 0
+    [int]$packetLength = 0
+    [int]$checkSum = 0
+    [uint[]]$eegPower = [uint[]]::new([BtManager]::EEG_POWER_BANDS)
+    [byte[]]$packetData = [byte[]]::new([BtManager]::MAX_PACKET_LENGTH)
+    [int]$signalQuality = 200
+    [int]$focus = 0
+    [int]$meditation = 0
+    [Collections.Generic.List[scriptblock]]$btDataParsedHandlers = [Collections.Generic.List[scriptblock]]::new()
+
+    BtManager([string]$comPort) {
+        $this.bt = [SerialPort]::new($comPort, 9600, [Parity]::None, 8, [StopBits]::One)
+        $this.bt.add_DataReceived({
+            param($sender, $e)
+            $this.BtDataReceived($sender, $e)
+        })
+        $this.bt.Open()
     }
-    base.Dispose($disposing)
+
+    [void]add_BtDataParsed([scriptblock]$handler) {
+        if ($null -ne $handler) {
+            $this.btDataParsedHandlers.Add($handler)
+        }
+    }
+
+    hidden [void]OnBtDataParsed([int]$rawValue) {
+        $args = [pscustomobject]@{ rawValue = $rawValue }
+        foreach ($handler in $this.btDataParsedHandlers) {
+            & $handler $this $args
+        }
+    }
+
+    hidden [void]BtDataReceived([object]$serialSender, [object]$e) {
+        $port = [SerialPort]$serialSender
+
+        $len = $port.BytesToRead
+        if ($len -le 0) {
+            return
+        }
+
+        $buffer = [byte[]]::new($len)
+        [void]$port.Read($buffer, 0, $len)
+
+        foreach ($b in $buffer) {
+            if ($this.inPacket) {
+                if ($this.packetIndex -eq 0) {
+                    $this.packetLength = $b
+                    if ($this.packetLength -gt [BtManager]::MAX_PACKET_LENGTH) {
+                        $this.inPacket = $false
+                    }
+                }
+                elseif ($this.packetIndex -le $this.packetLength) {
+                    $this.packetData[$this.packetIndex - 1] = $b
+                    $this.checksumAccumulator += $b
+                }
+                elseif ($this.packetIndex -gt $this.packetLength) {
+                    $this.checkSum = $b
+                    $this.checksumAccumulator = 255 - $this.checksumAccumulator
+
+                    if ($this.checkSum -eq $this.checksumAccumulator) {
+                        if ($this.ParsePacket()) {
+                            $this.freshPacket = $true
+                        }
+                    }
+                    $this.inPacket = $false
+                }
+                $this.packetIndex++
+            }
+
+            if ($b -eq 170 -and $this.lastByte -eq 170 -and -not $this.inPacket) {
+                $this.inPacket = $true
+                $this.packetIndex = 0
+                $this.checksumAccumulator = 0
+            }
+
+            $this.lastByte = $b
+        }
+
+        if ($this.freshPacket) {
+            $this.freshPacket = $false
+        }
+    }
+
+    hidden [bool]ParsePacket() {
+        $parseSuccess = $true
+        $rawValue = 0
+
+        $this.ClearEegPower()
+
+        for ($i = 0; $i -lt $this.packetLength; $i++) {
+            switch ($this.packetData[$i]) {
+                0x2 {
+                    $this.signalQuality = $this.packetData[++$i]
+                }
+                0x4 {
+                    $this.focus = $this.packetData[++$i]
+                }
+                0x5 {
+                    $this.meditation = $this.packetData[++$i]
+                }
+                0x83 {
+                    $i++
+                    for ($j = 0; $j -lt [BtManager]::EEG_POWER_BANDS; $j++) {
+                        $this.eegPower[$j] = [uint](($this.packetData[++$i] -shl 8) -bor $this.packetData[++$i])
+                    }
+                }
+                0x80 {
+                    $i++
+                    $rawValue = (($this.packetData[++$i] -shl 8) -bor $this.packetData[++$i])
+                }
+                default {
+                    $parseSuccess = $false
+                }
+            }
+        }
+
+        $this.OnBtDataParsed($rawValue)
+        return $parseSuccess
+    }
+
+    hidden [void]ClearEegPower() {
+        for ($i = 0; $i -lt [BtManager]::EEG_POWER_BANDS; $i++) {
+            $this.eegPower[$i] = 0
+        }
+    }
+
+    [void]Stop() {
+        if ($null -ne $this.bt -and $this.bt.IsOpen) {
+            $this.bt.Close()
+        }
+    }
 }
 
-$frame = New-Object System.Windows.Forms.Form
-$frame.Size = New-Object System.Drawing.Size(1200, 600)
-$frame.StartPosition = "CenterScreen"
-$frame.Visible = $true
+function New-BtManager {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ComPort
+    )
 
-$fullFocusAverageLabel = New-Object System.Windows.Forms.Label
-$fullFocusAverageLabel.Text = "Full Focus Average"
-$frame.Controls.Add($fullFocusAverageLabel)
-
-$fullFocusAverage = New-Object System.Windows.Forms.Label
-$fullFocusAverage.Text = ""
-$frame.Controls.Add($fullFocusAverage)
-
-$sampleBufferAverageLabel = New-Object System.Windows.Forms.Label
-$sampleBufferAverageLabel.Text = "Sample Buffer Average"
-$frame.Controls.Add($sampleBufferAverageLabel)
-
-$sampleBufferAverage = New-Object System.Windows.Forms.Label
-$sampleBufferAverage.Text = ""
-$frame.Controls.Add($sampleBufferAverage)
-
-$serialComOnfocus = New-Object System.Windows.Forms.CheckBox
-$serialComOnfocus.Text = "Serial Com on Focus"
-$frame.Controls.Add($serialComOnfocus)
-
-$clickOnFocus = New-Object System.Windows.Forms.CheckBox
-$clickOnFocus.Text = "Click on Focus"
-$frame.Controls.Add($clickOnFocus)
-
-# $bt = [System.IO.Ports.SerialPort]
-[int]MAX_PACKET_LENGTH = 32
-[int]EEG_POWER_BANDS = 8
-[byte]$lastByte
-[bool]inPacket = $false
-[bool]freshPacket = $false
-[int]packetIndex = 0
-[int]checksumAccuumulator = 0
-[int]packetLength = 0
-[int]checkSum = 0
-[uint64[]]$eegPower = [$EEG_POWER_BANDS]
-[byte[]]$packetData = [$MAX_PACKETS_BANDS]
-
-[int]s$ignalQuality = 200
-[int]$focus = 0
-[int]$meditation = 0
-
-function btManager
-{
-   [CmdletBinding()]
-   param ([string] comPort)
-
-   $bt = New-Object System.IO.Ports.SerialPort comPort, 9600, none, 8, one
-   $bt.DataReceived += BtDataReceived
+    return [BtManager]::new($ComPort)
 }
 
-function initComponents
-{
-   $chart = New-Object System.windows.Forms.DataVisualizations.charting.chart
-   $tableLayout = New-Object System.Windows.Forms.TableLayoutPanel
-   $flowLayout = New-Object System.Windows.Forms.FlowLayoutPanel
-   $chartArea = New-Object System.Windows.Forms.DataVisualizations.Charting.ChartArea
-   $legend = New-Object System.Windows.Forms.DataVisualizations.Charting.Legend
-   $series = New-Object System.Windows.Forms.DataVisualizations.Charting.Series
-}
+Export-ModuleMember -Function New-BtManager

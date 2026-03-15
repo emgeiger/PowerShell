@@ -1,11 +1,15 @@
 # Define the Form1 class
+
+using module ..\BrainControl.Lib\BtManager.psm1
 class Form1 {
     [string]$saveFile
     [System.IO.Ports.SerialPort]$ard
     [BtManager]$bt
-    [System.Collections.Generic.Queue[int]]$points
+    [System.Collections.Generic.Queue[int]]$points = [System.Collections.Generic.Queue[int]]::new()
     [int]$writeThreshold = 0
     [uint]$i = 0
+    [double]$focusThreshold = 1.15
+    [double]$focusScope = 0.2
 
     Form1() {
         $this.saveFile = (Get-Date).ToString('dd__HH-mm-ss') + '.csv'
@@ -47,9 +51,10 @@ class Form1 {
 
     [void]checkFocusThreshold([System.Collections.Generic.IEnumerable[int]]$vals) {
         $fullRange = $vals.ToArray()
-        $focusRange = ($fullRange[0..([Math]::Round($vals.Count * $FOCUS_SCOPE))]).Average()
+        $upperBound = [Math]::Max(0, [Math]::Round($vals.Count * $this.focusScope))
+        $focusRange = ($fullRange[0..$upperBound]).Average()
 
-        if ($focusRange -gt $fullRange.Average() * $FOCUS_THRESHOLD) {
+        if ($focusRange -gt $fullRange.Average() * $this.focusThreshold) {
             Write-Host "$($this.i++)  BING BANG BOOM REEEEEE"
             if ($clickCheck.Checked) {
                 $this.click()
