@@ -41,28 +41,18 @@ dellVersion:  $($SelectedPackage.dellVersion)
 "@
 
 
-    # Prevent collisions when multiple runs happen close together
-    $mutex = [System.Threading.Mutex]::new($false, 'Global\AutoDriverLogMutex')
-    try {
-        $null = $mutex.WaitOne()
-        $existing = if (Test-Path $LogFile) {
-            [System.IO.File]::ReadAllText($LogFile)
-        } else {
-            [string]::Empty
-        }
-        
-#        $combined = $entry + "`r`n`r`n" + $existing
-#        $combined = $entry + "`r`n" + $existing
-        $combined = $entry + [System.Environment]::NewLine + $existing
-        [System.IO.File]::WriteAllText($LogFile, $combined, [System.Text.UTF8Encoding]::new($false))
+    $existing = if (Test-Path $LogFile) {
+        [System.IO.File]::ReadAllText($LogFile)
+    } else {
+        [string]::Empty
     }
-    finally {
-        $mutex.ReleaseMutex() | Out-Null
-        $mutex.Dispose()
-    }
+    
+    $combined = $entry + [System.Environment]::NewLine + $existing
+    [System.IO.File]::WriteAllText($LogFile, $combined, [System.Text.UTF8Encoding]::new($false))
     Write-Output "Log file written to $LogFile"
 }
 
+function Invoke-AutoDriver {
 $bios = (Get-CimInstance -ClassName Win32_BIOS).Name
 $serial = (Get-CimInstance -ClassName Win32_BIOS).SerialNumber
 
@@ -261,7 +251,7 @@ if (Test-Path -Path $logFile -PathType Leaf)
     }
 }
 
-if(Test-Path -Path "C:\Dell\$cab" -PathType Leaf -Include *.cab)
+if(Test-Path -Path "C:\Dell\$cab" -PathType Leaf -Include *.cab -Exclude *.exe)
 {
     $cabFile = Get-ChildItem "C:\Dell\" -Name -Include *.cab
     $cabFile -match "(?s)^(?<Model>\w?\d+\w?)-(?<os>.+\d+?)-(?<revision>A\d+)-(?<releaseId>.+)\.cab$" | Out-Null
@@ -276,6 +266,21 @@ if(Test-Path -Path "C:\Dell\$cab" -PathType Leaf -Include *.cab)
     $revision = $Matches.revision
     $release = $Matches[4]
     $release = $Matches.releaseId
+} elseif (Test-Path -Path $workingDir\$selectedPackage -PathType Leaf -Include *.exe -Exclude *.cab) {
+    $exeFile = Get-ChildItem $workingDir -Name -Include *.exe
+    $exeFile -match "(?s)^(?<Model>\w?\d+\w?)-(?<releaseId>.+)_(?<os>.+\d+?)_(?<vendorVersion>\d\.\d)_(?<revision>A\d+)\.exe$" | Out-Null
+
+    $modelId = $Matches[1]
+    $modelId = $Matches.Model
+    $release = $Matches[2]
+    $release = $Matches.releaseId
+    $os = $Matches[3]
+    $os = $Matches.os
+    $vendorVersion = $Matches[4]
+    $vendorVersion = $Matches.vendorVersion
+    $revision = $Matches[5] # DellVersion
+    $revision = $Matches.revision # DellVersion
+
 }
 
 if($hash -eq $log -or $log -eq $hash -and $revision -eq $dellVersion -and $release -eq $releaseId)
@@ -377,7 +382,7 @@ if ($targetExtension -eq ".cab")
     if (-not $infFiles)
     {
         # Write-Output "Extracting $fileName driver pack to $workingDir"
-        Start-Process -FilePath $downloadDestination -ArgumentList "/s", "/e=$workingDir", "/l=$logFile" # , "/e=$workingDir" -Wait
+        Start-Process -FilePath $downloadDestination -ArgumentList "/s", "/e=$workingDir" -Wait
         & PNPUTIL /add-driver "$workingDir\*.inf" /subdirs /install
     }
 }
@@ -393,3 +398,29 @@ Pause
 
 # $DebugPreference = "Continue"
 # $VerbosePreference = "Continue"
+}
+
+$scriptMutexName = 'Global\AutoDriverScriptMutex'
+$scriptMutex = [System.Threading.Mutex]::new($false, $scriptMutexName)
+$hasScriptMutex = $false
+
+try {
+    try {
+        $hasScriptMutex = $scriptMutex.WaitOne(0, $false)
+    } catch [System.Threading.AbandonedMutexException] {
+        $hasScriptMutex = $true
+    }
+
+    if (-not $hasScriptMutex) {
+        Write-Error "Another AutoDriver instance is already running. Exiting."
+        exit 1
+    }
+
+    Invoke-AutoDriver
+}
+finally {
+    if ($hasScriptMutex) {
+        $scriptMutex.ReleaseMutex() | Out-Null
+    }
+    $scriptMutex.Dispose()
+}
