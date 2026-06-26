@@ -1,28 +1,66 @@
-#***********************************************************************************
-# @Author Eric Geiger
-#***********************************************************************************
+<#
+.SYNOPSIS
+Automates Dell driver deployment by reading the PC model and Windows version, downloading Dell's driver catalog, finding the matching driver pack, and installing the drivers.
+
+.DESCRIPTION
+Keeps the system's Dell drivers up to date using Dell's catalog-based deployment workflow and switches between CAB and DUP packages as needed for the target Windows version.
+
+.NOTES
+Author: Eric Geiger
+#>
+
 Set-PSDebug -Off # -Trace 2 -Step
 
 #main code
 $wc = New-Object System.Net.WebClient
 
-function logFile
-{
-[cmdletBinding()]
-param([string]$logFile)
+function Write-DriverPackLog {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string]$LogFile,
+        [Parameter(Mandatory)] [object]$SelectedPackage,
+        [Parameter(Mandatory)] [string]$Model,
+        [Parameter(Mandatory)] [string]$Major,
+        [Parameter(Mandatory)] [string]$Minor
+    )
 
-<# $catalogXMLDoc.DriverPackManifest.DriverPackage | ? { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
- ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $major) -and
- ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minor)} | Out-File $logFile
- #>
+    $logDir = Split-Path -Parent $LogFile
+    if ($logDir -and -not (Test-Path $logDir)) {
+        New-Item -Path $logDir -ItemType Directory | Out-Null
+    }
 
-$catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
- ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $major) -and
- ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minor)} | Out-File $logFile
+    $entry = @"
+timestamp:    $(Get-Date -Format o)
+model:        $Model
+osVersion:    $Major.$Minor
+selectedPath: $($SelectedPackage.path)
+hash:         $($SelectedPackage.hashMD5)
+releaseId:    $($SelectedPackage.releaseID)
+dellVersion:  $($SelectedPackage.dellVersion)
 
- Get-Date | Out-File -Append $logFile
+"@
 
-Write-Output "Log file wrote to $logFile"
+
+    # Prevent collisions when multiple runs happen close together
+    $mutex = [System.Threading.Mutex]::new($false, 'Global\AutoDriverLogMutex')
+    try {
+        $null = $mutex.WaitOne()
+        $existing = if (Test-Path $LogFile) {
+            [System.IO.File]::ReadAllText($LogFile)
+        } else {
+            [string]::Empty
+        }
+        
+#        $combined = $entry + "`r`n`r`n" + $existing
+#        $combined = $entry + "`r`n" + $existing
+        $combined = $entry + [System.Environment]::NewLine + $existing
+        [System.IO.File]::WriteAllText($LogFile, $combined, [System.Text.UTF8Encoding]::new($false))
+    }
+    finally {
+        $mutex.ReleaseMutex() | Out-Null
+        $mutex.Dispose()
+    }
+    Write-Output "Log file written to $LogFile"
 }
 
 $bios = (Get-CimInstance -ClassName Win32_BIOS).Name
@@ -48,51 +86,72 @@ $model = (Get-WmiObject -Class Win32_computerSystem -ComputerName . -Namespace r
 # $modelObject = Get-WmiObject -Class Win32_computerSystem -ComputerName . -Namespace root\cimv2
 # $modelList = Get-WmiObject -Query "Select * FROM Win32_ComputerSystem" -ComputerName . -Namespace root\cimv2 | Select-Object -Property model | Format-List -Expand EnumOnly
 # $modelTable = Get-WmiObject -Query "Select * FROM Win32_ComputerSystem" -ComputerName . -Namespace root\cimv2 | Select-Object -Property model | Format-Table -HideTableHeaders
-if (!(Test-Path -Path "C:\Dell\CabInstall" -PathType Container))
+if (!(Test-Path -Path "C:\Dell\" -PathType Container))
 {
-    New-Item -Path "C:\Dell\CabInstall" -ItemType Directory
+    New-Item -Path "C:\Dell\" -ItemType Directory
 }
 $source = "http://downloads.dell.com/catalog/DriverPackCatalog.cab"
 # $ftpSource = "ftp://downloads.dell.com/catalog/DriverPackCatalog.cab"
 # $altFtpSource = "ftp://ftp.dell.com/catalog/DriverPackCatalog.cab"
-$workingDir = "C:\Dell\CabInstall"
+$workingDir = "C:\Dell\"
 # $destination = "$workingDir" + "\DriverPackCatalog.cab "
-$destination = "$workingDir" + "\DriverPackCatalog.cab "
+$destination = Join-Path -Path $workingDir -ChildPath "DriverPackCatalog.cab"
 
 # Invoke-WebRequest $source $destination
 $wc.DownloadFile($source, $destination)
 # wget $source $destination
 
-#2.
+# 2. How to get "DriverPackCatalog.xml" from "DriverPackCatalog.cab" ?
+# Driver Pack Catalog ("DriverPackCatalog.xml") is digitally signed and delivered as "DriverPackCatalog.cab" file, 
+# that can be extracted.
 
-$catalogCabFile = "$workingDir" + "\DriverPackCatalog.cab"
-$catalogXmlFile = "$workingDir" + "\DriverPackCatalog.xml"
+$catalogCabFile = Join-Path -Path $workingDir -ChildPath "DriverPackCatalog.cab"
+$catalogXmlFile = Join-Path -Path $workingDir -ChildPath "DriverPackCatalog.xml"
 EXPAND $catalogCabFile $catalogXmlFile
 
-#3.
+# 3.  How to find the list of Models supported by "DriverPackCatalog.xml"?
+<# Note:
+    Although, LOB title and model codes are present in child nodes, 
+    we recommend you to use the BIOS/System ID and Name to evaluate the applicability of the Driver Pack.
+#>
 
-$catalogXmlFile = "$workingDir" + "\DriverPackCatalog.xml"
+<# Description:
+    Get Mapping between Model name and BIOS/System ID along with Line of Business,
+    for system supported by the catalog from "DriverPackCatalog.xml" available in the current directory.
+#>
+
+$catalogXmlFile = Join-Path -Path $workingDir -ChildPath "DriverPackCatalog.xml"
 [xml]$catalogXmlDoc = Get-Content $catalogXmlFile
 
 # $catalogXMLDoc.DriverPackManifest.DriverPackage | Select-Object @{Expression={$_.SupportedSystems.Brand.key};Label="LOBKey";}, @{Expression=
 # {$_.SupportedSystems.Brand.prefix};Label="LOBPrefix";}, @{Expression={$_.SupportedSystems.Brand.Model.systemID};Label="SystemID";}, @{Expression=
 # {$_.SupportedSystems.Brand.Model.name};Label="SystemName";} –unique
 
-#4.
+# 4. How to locate or find Driver Packs for a System from "DriverPackCatalog.xml"?
 
-$catalogXMLFile = "$workingDir" + "\DriverPackCatalog.xml"
+# After the "DriverPackCatalog.xml" is made available in the current directory, 
+# the xml can be parsed to find all Driver Packs applicable for a model using BIOS/System ID or Name.
+
+<#
+    Description: In order to get all applicable System and WinPE Driver Packs for a given System, 
+    replace the 'BIOS ID' or 'System Name' in the script.
+#>
+
+# PowerShell snippet:
+
+$catalogXMLFile = Join-Path -Path $workingDir -ChildPath "DriverPackCatalog.xml"
 [xml]$catalogXMLDoc = Get-Content $catalogXMLFile
 
 # $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.systemID -eq "BIOS ID") -or ($_.type -eq "WinPE")} |sort type
 # or
 # $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq "System Name") -or ($_.type -eq "WinPE")} |sort type
 
-$catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $model)} |Sort-Object type # | format-table
+$catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $model)} | Sort-Object type # | format-table
 # $catalogXmlDoc.DriverPackManifest.DriverPackage | Where-Object {($_.SupportSystems.Brand.Model.name -eq $modelObject.model)} |Sort-Object type # | format-table
 
-#5.
+# 5.
 
-$catalogXMLFile = "$workingDir" + "\DriverPackCatalog.xml"
+$catalogXMLFile = Join-Path -Path $workingDir -ChildPath "DriverPackCatalog.xml"
 [xml]$catalogXMLDoc = Get-Content $catalogXMLFile
 
 # Examples
@@ -107,22 +166,6 @@ $catalogXMLFile = "$workingDir" + "\DriverPackCatalog.xml"
 #  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq "OS Major Version" ) -and ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq "OS Minor Version" )}
 
 #--------------------------------------------------------------------------------------------------------------
-
-<#
-
-if (!(Test-Path -Path "C:\Logs" -PathType Container))
-{
-    New-Item -Path "C:\Logs" -ItemType Directory
-}
-
-Get-Date | Out-File $logFile
-
- $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
-  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
-   ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minorVersion )} | Out-File $logFile
-   
-   [Console]::Write("Log file wrote to ") + $logFile
-#>
 
 # $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $modelObject.model) -and
 #  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
@@ -148,7 +191,7 @@ Get-Date | Out-File $logFile
 #>
 #-----------------------------------------------------------------------------------------
 
-# 7 How to download the link for Driver Packs for a model, operating system and type from "DriverPackCatalog.xml"?
+# 7. How to download the link for Driver Packs for a model, operating system and type from "DriverPackCatalog.xml"?
 # After a Driver Pack is located for (Type)-(BIOS/System ID or System Name)-(Operating System), you can easily download it.
 # Description: The example demonstrates downloading of a WinPE Cab. Replace 'OS Major Version' and 'OS Minor Version' to get WinPE Cab for a model and operating system and download the same to the current directory.
 
@@ -197,31 +240,30 @@ $hash = $selectedPackage.hashMD5
 $releaseId = $selectedPackage.releaseID
 $dellVersion = $selectedPackage.dellVersion
 
-if (!(Test-Path -Path "C:\Logs" -PathType Container))
+<#
+
+ $catalogXMLDoc.DriverPackManifest.DriverPackage | Where-Object { ($_.SupportedSystems.Brand.Model.name -eq $model) -and
+  ($_.SupportedOperatingSystems.OperatingSystem.majorVersion -eq $majorVersion ) -and
+   ($_.SupportedOperatingSystems.OperatingSystem.minorVersion -eq $minorVersion )} | Out-File $logFile
+   
+   [Console]::Write("Log file wrote to ") + $logFile
+#>
+
+$logDir = "C:\Logs"
+$logFile = Join-Path -Path $logDir -ChildPath "autoDriver.log"
+
+if (Test-Path -Path $logFile -PathType Leaf)
 {
-    New-Item -Path "C:\Logs" -ItemType Directory
+    $hashMatch = Select-String -Path $logFile -Pattern "^hash:\s*(?<regHash>.+)$" | Select-Object -Last 1
+    if($hashMatch)
+    {
+        $log = $hashMatch.Matches[0].Groups['regHash'].Value.Trim()
+    }
 }
 
-$logFile = "C:\Logs\autoDriver.log"
-
-if (Test-Path -Path "C:\Logs\autoDriver.log" -PathType Leaf)
+if(Test-Path -Path "C:\Dell\$cab" -PathType Leaf -Include *.cab)
 {
-    $logs = Get-ChildItem "C:\logs\" -Name -Include *.log | Where-Object { $_ -match "^autoDriver\..+$" }
-    Get-Content "C:\logs\$logs" | Where-Object { $_ -match "hash.+:\s(?<regHash>.+)" } | Out-Null
-    Get-Content "$env:SystemDrive\logs\$logs" | Where-Object { $_ -match "hash.+:\s(?<regHash>.+)" } | Out-Null
-    $log = $Matches.regHash
-}
-
-if (!(Test-Path -Path "C:\Dell\CabInstall\cab" -PathType Container))
-{
-    New-Item -Path "C:\Dell\CabInstall\cab" -ItemType Directory
-}
-
-$workingDir = "C:\Dell\CabInstall\cab"
-
-if(Test-Path -Path "C:\Dell\CabInstall\cab\$cab" -PathType Leaf -Include *.cab)
-{
-    $cabFile = Get-ChildItem "C:\Dell\CabInstall\cab" -Name -Include *.cab
+    $cabFile = Get-ChildItem "C:\Dell\" -Name -Include *.cab
     $cabFile -match "(?s)^(?<Model>\w?\d+\w?)-(?<os>.+\d+?)-(?<revision>A\d+)-(?<releaseId>.+)\.cab$" | Out-Null
 
 #   $cabFile | Select-String -Pattern "(?s)^(\w?\d+\w?)-(.+\d+?)-(A\d+)-(.+)\.cab$"
@@ -246,23 +288,102 @@ if($hash -eq $log -or $log -eq $hash -and $revision -eq $dellVersion -and $relea
 $downloadLink = "https://" + $catalogXMLDoc.DriverPackManifest.baseLocation + "/" + $selectedPackage.path
 $fileName = [System.IO.Path]::GetFileName($downloadLink)
 $downloadDestination = Join-Path -Path $workingDir -ChildPath $fileName # "$workingDir" + "\" + $fileName
-Write-output "Downloading $selectedExtension driver pack for $targetOS. This may take a few minutes."
-$wc.DownloadFile($downloadLink, $downloadDestination)
 
-if($targetExtension -eq ".cab")
+if (-not (Test-Path -Path $downloadDestination -PathType Leaf))
 {
-    & EXPAND "$downloadDestination" -F:* "$workingDir"
-    & PNPUTIL /add-driver "$workingDir\*.inf" /subdirs /install
+    $syncHash = [hashtable]::Synchronized(@{
+        Progress = 0
+        Total    = 0L
+        Read     = 0L
+        Complete = $false
+        Error    = $null
+    })
+
+    $rs = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace()
+    $rs.Open()
+    $rs.SessionStateProxy.SetVariable('syncHash',            $syncHash)
+    $rs.SessionStateProxy.SetVariable('downloadLink',        $downloadLink)
+    $rs.SessionStateProxy.SetVariable('downloadDestination', $downloadDestination)
+
+    $ps = [System.Management.Automation.PowerShell]::Create()
+    $ps.Runspace = $rs
+    $ps.AddScript({
+        $httpClient = [System.Net.Http.HttpClient]::new()
+        try {
+            $response  = $httpClient.GetAsync($downloadLink,
+                           [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead
+                         ).GetAwaiter().GetResult()
+            $syncHash.Total = $response.Content.Headers.ContentLength
+            $srcStream = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
+            $dstStream = [System.IO.FileStream]::new($downloadDestination,
+                           [System.IO.FileMode]::Create)
+            try {
+                $buffer = [byte[]]::new(81920)
+                $read   = 0
+                while (($read = $srcStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                    $dstStream.Write($buffer, 0, $read)
+                    $syncHash.Read += $read
+                    if ($syncHash.Total) {
+                        $syncHash.Progress = [int]($syncHash.Read / $syncHash.Total * 100)
+                    }
+                }
+            } finally {
+                $dstStream.Dispose()
+                $srcStream.Dispose()
+                $response.Dispose()
+            }
+        } catch {
+            $syncHash.Error = $_
+        } finally {
+            $httpClient.Dispose()
+            $syncHash.Complete = $true
+        }
+    }) | Out-Null
+
+    $handle = $ps.BeginInvoke()
+    do {
+        Write-Progress -Activity "Downloading $fileName" -Status "$($syncHash.Progress)% complete" -PercentComplete $syncHash.Progress
+        Start-Sleep -Milliseconds 300
+    } while (-not $syncHash.Complete)
+    $ps.EndInvoke($handle)
+    $ps.Dispose()
+    $rs.Dispose()
+    Write-Progress -Activity "Downloading $fileName" -Completed
+    if ($syncHash.Error) { throw $syncHash.Error }
+} else {
+    Write-Output "Using cached $fileName - skipping download."
 }
-else
+
+$infFiles = Get-ChildItem -Path $workingDir -Filter *.inf -Recurse -ErrorAction SilentlyContinue
+
+if ($targetExtension -eq ".cab")
 {
-    # Start-Process -FilePath $downloadDestination -Wait
-    Start-Process dup -ArgumentList "/e=$downloadDestination" -Wait
+    if (-not $infFiles)
+    {
+        $job = Start-Job { & EXPAND $args[0] -F:* $args[1] } -ArgumentList $downloadDestination, $workingDir
+        $i = 0
+        while ($job.State -eq 'Running')
+        {
+            Write-Progress -Activity "Extracting $fileName" -Status "Extracting..." -PercentComplete ($i % 100)
+            $i += 5
+            Start-Sleep -Milliseconds 300
+        }
+        Receive-Job $job | Out-Null
+        Remove-Job $job
+        Write-Progress -Activity "Extracting $fileName" -Completed
+    }
     & PNPUTIL /add-driver "$workingDir\*.inf" /subdirs /install
+} else {
+    if (-not $infFiles)
+    {
+        # Write-Output "Extracting $fileName driver pack to $workingDir"
+        Start-Process -FilePath $downloadDestination -ArgumentList "/s", "/e=$workingDir", "/l=$logFile" # , "/e=$workingDir" -Wait
+        & PNPUTIL /add-driver "$workingDir\*.inf" /subdirs /install
+    }
 }
 
 # write-verbose -Message Done
-logFile($logFile)
+Write-DriverPackLog -logFile $logFile -SelectedPackage $selectedPackage -Model $model -Major $major -Minor $minor
 # write-warning "Need to run BIOS manually"
 [Console]::Write("Your BIOS version is ") + $bios
 
